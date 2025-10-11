@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRAS - Camera Feed</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #456882;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background: #1B3C53;;
+            color: white;
+            padding: 8px 0 8px 0;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 60px;
+            text-align: center;
+        }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .video-feed {
+            max-width: 100%;
+            border-radius: 10px;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            font-family: 'Courier New', monospace;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #3498db;
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 20px auto;
+        }
+
+        .info-card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .info-card p {
+            color: #6c757d;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-live {
+            background: #28a745;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .control-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: #2980b9;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            color: #6c757d;
+            font-size: 1.1em;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .statistics-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .statistics-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .statistics-header h3 {
+            color: #2c3e50;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .statistics-header p {
+            color: #6c757d;
+            font-size: 1em;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+
+        /* Responsive improvements */
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            .header h1 {
+                font-size: 2em;
+            }
+            .info-card {
+                margin: 10px;
+                padding: 15px;
+            }
+            .statistics-section {
+                margin: 10px;
+                padding: 15px;
+            }
+        }
+
+        .stats-summary {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .stat-card h4 {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+            opacity: 0.9;
+        }
+
+        .stat-card .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .loading-stats {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div style="display: flex; min-height: 100vh;">
+        <nav id="sidebar" style="width: 240px; background: #234C6A; color: #fff; position: fixed; top: 0; left: 0; height: 100vh; z-index: 1100; display: flex; flex-direction: column; box-shadow: 2px 0 10px rgba(0,0,0,0.08);">
+            <div style="padding: 32px 24px 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                <a class="navbar-brand" href="{% url 'dashboard' %}" style="color: #fff; font-size: 1.7rem; font-weight: 700; text-decoration: none;">
+                    <i class="fas fa-shield-alt"></i> SRAS
+                </a>
+            </div>
+            <ul class="nav flex-column mt-4" style="flex: 1;">
+                <li class="nav-item mb-2">
+                    <a class="nav-link" href="{% url 'dashboard' %}" style="color: #fff; font-weight: 500;">
+                        <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link active" href="{% url 'monitor' %}" style="color: #fff;">
+                        <i class="fas fa-video me-2"></i> Live Monitor
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link" href="{% url 'violation_list' %}" style="color: #fff;">
+                        <i class="fas fa-list me-2"></i> Violations
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link" href="{% url 'enforcer_list' %}" style="color: #fff;">
+                        <i class="fas fa-users me-2"></i> Enforcers
+                    </a>
+                </li>
+            </ul>
+            <div style="padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <div class="dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="sidebarDropdown" role="button" data-bs-toggle="dropdown" style="color: #fff;">
+                        <i class="fas fa-user"></i> <span class="d-none d-md-inline">{{ user.username }}</span>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContainer = document.querySelector('.main-container');
+    const header = document.querySelector('.header');
+    let collapsed = false;
+
+    // Add smooth transition to all relevant elements
+    [mainContainer, header].forEach(el => {
+        if (el) el.style.transition = 'margin-left 0.2s, width 0.2s, left 0.2s';
+    });
+
+    function setSidebarTextVisibility(hide) {
+        sidebar.querySelectorAll('.nav-link, .navbar-brand, .dropdown-toggle').forEach(el => {
+            el.childNodes.forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    if (hide) {
+                        if (!node._originalText) node._originalText = node.textContent;
+                        node.textContent = '';
+                    } else {
+                        node.textContent = node._originalText || node.textContent;
+                    }
+                } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'I') {
+                    if (hide) {
+                        if (!node.dataset.originalDisplay) node.dataset.originalDisplay = node.style.display;
+                        node.style.display = 'none';
+                    } else {
+                        node.style.display = node.dataset.originalDisplay || '';
+                    }
+                }
+            });
+        });
+        sidebar.querySelectorAll('.dropdown, .sidebar-admin').forEach(adminSection => {
+            adminSection.querySelectorAll('*').forEach(child => {
+                if (child.tagName !== 'I') {
+                    if (hide) {
+                        if (!child.dataset.originalDisplay) child.dataset.originalDisplay = child.style.display;
+                        child.style.display = 'none';
+                    } else {
+                        child.style.display = child.dataset.originalDisplay || '';
+                    }
+                }
+            });
+            adminSection.childNodes.forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    if (hide) {
+                        if (!node._originalText) node._originalText = node.textContent;
+                        node.textContent = '';
+                    } else {
+                        node.textContent = node._originalText || node.textContent;
+                    }
+                }
+            });
+        });
+    }
+
+    function setHeaderWidthAndLeft(width, left) {
+        if (header) {
+            header.style.transition = 'margin-left 0.2s, width 0.2s, left 0.2s';
+            header.style.width = width;
+            header.style.left = left;
+        }
+    }
+    function collapseSidebar() {
+        collapsed = true;
+        sidebar.style.transition = 'width 0.2s';
+        sidebar.style.width = '60px';
+        mainContainer.style.transition = 'margin-left 0.2s, width 0.2s';
+        mainContainer.style.marginLeft = '60px';
+        mainContainer.style.width = 'calc(100% - 60px)';
+        setHeaderWidthAndLeft('calc(100% - 60px)', '60px');
+        setSidebarTextVisibility(true);
+    }
+    function expandSidebar() {
+        collapsed = false;
+        sidebar.style.transition = 'width 0.2s';
+        sidebar.style.width = '240px';
+        mainContainer.style.transition = 'margin-left 0.2s, width 0.2s';
+        mainContainer.style.marginLeft = '240px';
+        mainContainer.style.width = 'calc(100% - 240px)';
+        setHeaderWidthAndLeft('calc(100% - 240px)', '240px');
+        setSidebarTextVisibility(false);
+    }
+
+    // Initial set for page load
+    setHeaderWidthAndLeft('calc(100% - 240px)', '240px');
+
+    sidebar.addEventListener('mouseenter', function() {
+        if (collapsed) {
+            expandSidebar();
+        }
+    });
+    sidebar.addEventListener('mouseleave', function() {
+        if (!collapsed) {
+            collapseSidebar();
+        }
+    });
+});
+</script>
+        </nav>
+        <div class="main-container" style="margin-left: 240px; width: calc(100% - 240px); transition: margin-left 0.2s, width 0.2s;">
+            <div style="height: 80px;"></div>
+            <div class="header" style="position: fixed; top: 0; left: 240px; right: 0; z-index: 1001; background: #1B3C53; width: calc(100% - 240px); padding-top: 18px; padding-bottom: 12px;">
+                <div style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 18px;">
+                    <span style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #3498db 0%, #764ba2 100%); box-shadow: 0 2px 8px rgba(52,152,219,0.10);">
+                        <i class="fas fa-video" style="font-size: 1.7rem; color: #fff;"></i>
+                    </span>
+                    <span style="font-size: 1.7rem; font-weight: 800; letter-spacing: 1px; color: #fff; text-shadow: 0 2px 8px rgba(52,152,219,0.10);">
+                        SRAS Live Monitor
+                    </span>
+                </div>
+                <div style="text-align: center; margin-top: 2px;">
+                    <span style="font-size: 1rem; color: #e0e6ed; font-weight: 500;">Real-time Safety Helmet Detection</span>
+                </div>
+            </div>
+            <div class="content">
+                <!-- Full-width Video Feed Card -->
+                <div class="card shadow-sm mb-4" style="border-radius: 16px; border: 2px dashed #3498db; background: #fff; padding: 32px 24px; display: flex; flex-direction: column; align-items: center;">
+                    <div class="video-container" style="margin-bottom: 0; width: 100%; max-width: 900px;">
+                        <img id="videoFeed" class="video-feed" src="http://localhost:8081/video" alt="Live Detection Feed" style="width: 100%; max-width: 100%; border-radius: 12px;">
+                        <div class="video-overlay">
+                            <span class="status-indicator status-live"></span>
+                            LIVE
+                        </div>
+                    </div>
+                    <div class="mt-3" style="width: 100%; text-align: center;">
+                        <span class="badge bg-primary" style="font-size: 1rem; padding: 8px 18px; border-radius: 8px;">
+                            <i class="fas fa-video"></i> Camera Feed
+                        </span>
+                    </div>
+                </div>
+                <!-- Info & Controls Card Below -->
+                <div class="card shadow-sm" style="border-radius: 16px; border: 2px dashed #764ba2; background: #fff; padding: 28px 24px; max-width: 900px; margin: 0 auto;">
+                    <h4 class="mb-3" style="font-weight: bold; color: #764ba2;"><i class="fas fa-info-circle"></i> Stream Information</h4>
+                    <p style="color: #555;">This live feed is powered by the optimized MJPEG stream server running on port 8081.</p>
+                    <p style="color: #555;">The detection system runs YOLO inference every 3rd frame for optimal performance.</p>
+                    <div class="controls mt-4" style="display: flex; justify-content: center;">
+                        <button class="control-btn" onclick="refreshStream()" style="margin-right: 10px;">🔄 Refresh Stream</button>
+                        <a href="{% url 'violation_list' %}" class="control-btn">📋 View Violations</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Handle video feed errors
+        document.getElementById('videoFeed').onerror = function() {
+            this.style.display = 'none';
+            const container = document.querySelector('.video-container');
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>
+                        <p>Video feed unavailable</p>
+                        <p style="font-size: 0.9em; margin-top: 10px;">Make sure stream_mjpeg.py is running on port 8081</p>
+                        <button class="control-btn" onclick="location.reload()" style="margin-top: 15px;">Retry</button>
+                    </div>
+                </div>
+            `;
+        };
+
+        function refreshStream() {
+            const videoFeed = document.getElementById('videoFeed');
+            videoFeed.src = videoFeed.src + '?t=' + Date.now();
+        }
+
+        // Statistics functionality removed
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
