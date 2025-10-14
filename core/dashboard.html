@@ -386,6 +386,7 @@ document.addEventListener('DOMContentLoaded', function() {
         {% endif %}
 
         <!-- Welcome Popup (fades out) -->
+        {% if show_welcome_popup %}
         <div id="welcomePopup" class="position-fixed top-0 start-50 translate-middle-x" style="z-index: 2000; margin-top: 32px; min-width: 320px; max-width: 90vw;">
             <div class="alert alert-primary d-flex align-items-center shadow-lg" style="font-size: 1.1rem; border-radius: 12px; padding: 18px 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none;">
                 <i class="fas fa-sun me-3" style="font-size: 1.7rem;"></i>
@@ -407,6 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 2200);
             });
         </script>
+        {% endif %}
 
         <!-- Statistics Cards -->
         <div class="row mb-4 stat-overview-animate">
