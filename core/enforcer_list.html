@@ -48,10 +48,38 @@
         }
         .btn-action {
             margin: 5px;
-            border-radius: 8px;
+            border-radius: 999px;
             font-weight: 600;
-            min-height: 44px;
-            font-size: 14px;
+            font-size: 0.88em;
+            padding: 3px 10px;
+            min-height: unset;
+            border: 1px solid #007bff;
+            box-shadow: none;
+            transition: background 0.18s, color 0.18s, border-color 0.18s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none !important;
+        }
+        .btn-action.btn-outline-warning {
+            color: #f39c12 !important;
+            border: 1px solid #f39c12;
+            background: #fff;
+        }
+        .btn-action.btn-outline-warning:hover, .btn-action.btn-outline-warning:focus {
+            background: #f39c12;
+            color: #fff !important;
+            border-color: #f39c12;
+        }
+        .btn-action.btn-outline-danger {
+            color: #e74c3c !important;
+            border: 1px solid #e74c3c;
+            background: #fff;
+        }
+        .btn-action.btn-outline-danger:hover, .btn-action.btn-outline-danger:focus {
+            background: #e74c3c;
+            color: #fff !important;
+            border-color: #e74c3c;
         }
         .alert {
             border-radius: 8px;
@@ -316,7 +344,7 @@
                                     </td>
                                     <td style="padding: 12px 16px; text-align: center;">
 <!-- DEBUG: Edit button for enforcer. Now triggers edit modal. -->
-<button class="btn btn-sm btn-outline-warning me-2"
+<button class="btn-action btn-outline-warning me-2"
         data-bs-toggle="modal"
         data-bs-target="#editEnforcerModal"
         data-enforcer-id="{{ enforcer.id }}"
@@ -326,7 +354,7 @@
         data-enforcer-active="{% if enforcer.user.is_active %}true{% else %}false{% endif %}">
     <i class="fas fa-edit"></i> <span class="d-none d-sm-inline">Edit</span>
 </button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete('{{ enforcer.id }}', '{{ enforcer.user.username|escapejs }}')">
+                                        <button class="btn-action btn-outline-danger" onclick="confirmDelete('{{ enforcer.id }}', '{{ enforcer.user.username|escapejs }}')">
                                             <i class="fas fa-trash"></i> <span class="d-none d-sm-inline">Delete</span>
                                         </button>
                                     </td>
