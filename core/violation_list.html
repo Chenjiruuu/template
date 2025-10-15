@@ -128,16 +128,16 @@
     .btn-outline-view {
         background: #fff;
         color: #007bff !important;
-        border: 2px solid #007bff;
+        border: 1px solid #007bff;
         border-radius: 999px;
-        font-weight: 700;
-        font-size: 0.92em;
-        padding: 5px 14px;
+        font-weight: 600;
+        font-size: 0.88em;
+        padding: 3px 10px;
         box-shadow: none;
         transition: background 0.18s, color 0.18s, border-color 0.18s;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 5px;
         text-decoration: none !important;
     }
     .btn-outline-view:hover, .btn-outline-view:focus {
@@ -149,16 +149,16 @@
     .btn-outline-delete {
         background: #fff;
         color: #e74c3c !important;
-        border: 2px solid #e74c3c;
+        border: 1px solid #e74c3c;
         border-radius: 999px;
-        font-weight: 700;
-        font-size: 0.92em;
-        padding: 5px 14px;
+        font-weight: 600;
+        font-size: 0.88em;
+        padding: 3px 10px;
         box-shadow: none;
         transition: background 0.18s, color 0.18s, border-color 0.18s;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 5px;
         text-decoration: none !important;
     }
     .btn-outline-delete:hover, .btn-outline-delete:focus {
@@ -197,6 +197,11 @@
                 <li class="nav-item mb-2">
                     <a class="nav-link" href="{% url 'enforcer_list' %}" style="color: #fff;">
                         <i class="fas fa-users me-2"></i> Enforcers
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link" href="{% url 'pending_violation' %}" style="color: #fff;">
+                        <i class="fas fa-exclamation-circle me-2"></i> Pending Violations
                     </a>
                 </li>
             </ul>
@@ -382,14 +387,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="col-md-8 col-12 mb-2">
                         <form method="GET" action="{% url 'violation_list' %}">
                             <div class="row g-3 align-items-end flex-nowrap">
-                                <div class="col-md-6 col-12">
+                                <div class="col-md-6 col-12" style="color: white;">
                                     <label for="search" class="form-label mb-1 fw-semibold"><i class="fas fa-search me-1"></i> Search</label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-light"><i class="fas fa-search"></i></span>
-                                        <input type="text" id="search" name="search" value="{{ search }}" class="form-control" placeholder="Plate number or camera name...">
+                                        <input type="text" id="search" name="search" value="{{ search }}" class="form-control">
                                     </div>
                                 </div>
-                                <div class="col-md-3 col-12">
+                                <div class="col-md-3 col-12" style="color: white;">
                                     <label for="date" class="form-label mb-1 fw-semibold"><i class="fas fa-calendar-alt me-1"></i> Date</label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-light"><i class="fas fa-calendar-alt"></i></span>
@@ -403,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         </form>
                     </div>
-                    <div style="height: 15px;"></div>
+                    <div style="height: 14px;"></div>
                 </div>
 
 
@@ -443,7 +448,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                             </th>
                                             <th style="padding: 16px 18px; text-align: center; font-size:1.08em; color:#f093fb; font-weight:700; border: none;">
                                                 <i class="fas fa-cogs"></i> Action
-                                        </th>
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -491,9 +496,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                             </td>
                                             <td style="padding: 14px 18px; text-align: center; background:rgba(240,147,251,0.04); border: none;">
                                                 <a href="{% url 'violation_detail' violation.id %}"
-                                                class="btn-outline-view"
-                                                style="margin-right: 8px;">
-                                                    <i class="fas fa-eye"></i> <span class="d-none d-sm-inline">View</span>
+                                                    class="btn-outline-view"
+                                                    style="margin-right: 8px;">
+                                                        <i class="fas fa-eye"></i> <span class="d-none d-sm-inline">View</span>
                                                 </a>
                                                 <button type="button"
                                                         class="btn-outline-delete"
