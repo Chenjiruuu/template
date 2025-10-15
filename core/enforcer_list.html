@@ -463,9 +463,11 @@
                             <div class="col-md-6 col-12 mb-3">
                                 <label for="editEnforcerCamera" class="form-label">Assigned Camera</label>
                                 <select class="form-control form-select" id="editEnforcerCamera" name="assigned_camera">
-                                    <option value="">No camera assigned</option>
+                                    <option value="1" selected>Default Camera</option>
                                     {% for camera in cameras %}
-                                        <option value="{{ camera.id }}">{{ camera.name }} - {{ camera.stream_url }}</option>
+                                        {% if camera.name != "Default Camera" %}
+                                            <option value="{{ camera.id }}">{{ camera.name }} - {{ camera.stream_url }}</option>
+                                        {% endif %}
                                     {% endfor %}
                                 </select>
                                 <small class="text-muted">Optional: Assign to a specific camera</small>
@@ -517,7 +519,19 @@
             document.getElementById('editEnforcerId').value = enforcerId;
             document.getElementById('editEnforcerEmail').value = enforcerEmail;
             document.getElementById('editEnforcerMobile').value = enforcerMobile;
-            document.getElementById('editEnforcerCamera').value = enforcerCamera || "";
+            // Always select "Default Camera" if it exists
+            var cameraSelect = document.getElementById('editEnforcerCamera');
+            var foundDefault = false;
+            for (var i = 0; i < cameraSelect.options.length; i++) {
+                if (cameraSelect.options[i].text.includes('Default Camera')) {
+                    cameraSelect.selectedIndex = i;
+                    foundDefault = true;
+                    break;
+                }
+            }
+            if (!foundDefault) {
+                cameraSelect.value = enforcerCamera || "";
+            }
             document.getElementById('editEnforcerActive').checked = (enforcerActive === "true");
             document.getElementById('editEnforcerUsername').textContent = usernameCell ? usernameCell.textContent.trim() : "";
             
