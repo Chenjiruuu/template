@@ -491,6 +491,7 @@ def approve_violation(request, violation_id):
         # Create OriginalViolation record if needed
         OriginalViolation.objects.create(
             camera=violation.camera,
+            timestamp=timezone.now(),
             plate_number=violation.plate_number,
             image=violation.image,
             plate_image=violation.plate_image,
