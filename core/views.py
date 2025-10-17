@@ -250,21 +250,33 @@ def violation_list(request):
     violations = OriginalViolation.objects.all().order_by('-timestamp')
     
     # Apply filters
+    import logging
+    logger = logging.getLogger(__name__)
+
     if search:
         violations = violations.filter(
             Q(plate_number__icontains=search) |
             Q(camera__name__icontains=search)
         )
-    
+        logger.warning(f"Search filter applied: '{search}', count: {violations.count()}")
+
     if date_filter:
         try:
             filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
-            violations = violations.filter(timestamp__date=filter_date)
+            import pytz
+            local_tz = pytz.timezone('Asia/Manila')
+            start_dt = local_tz.localize(datetime.combine(filter_date, datetime.min.time()))
+            end_dt = local_tz.localize(datetime.combine(filter_date, datetime.max.time()))
+            start_utc = start_dt.astimezone(pytz.UTC)
+            end_utc = end_dt.astimezone(pytz.UTC)
+            violations = violations.filter(timestamp__gte=start_utc, timestamp__lte=end_utc)
+            logger.warning(f"Date filter applied: {date_filter} ({start_utc} to {end_utc}), count: {violations.count()}")
         except ValueError:
-            pass
-    
+            logger.error(f"Invalid date_filter format: {date_filter}")
+
     if plate_filter:
         violations = violations.filter(plate_number__icontains=plate_filter)
+        logger.warning(f"Plate filter applied: '{plate_filter}', count: {violations.count()}")
     
     # Pagination
     paginator = Paginator(violations, 20)  # Show 20 violations per page
