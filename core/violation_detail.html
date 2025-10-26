@@ -12,6 +12,12 @@
             padding: 0;
             box-sizing: border-box;
         }
+        /* Sidebar active link background highlight */
+        .sidebar .nav-link.active {
+            background: #428aba !important;
+            color: #fff !important;
+            border-radius: 8px;
+        }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -280,7 +286,7 @@
     <!-- Sidebar Navigation -->
     <div style="display: flex; min-height: 100vh;">
         <nav id="sidebar" class="sidebar" style="width: 240px; background: #234C6A; color: #fff; position: fixed; top: 0; left: 0; height: 100vh; z-index: 1100; display: flex; flex-direction: column; box-shadow: 2px 0 10px rgba(0,0,0,0.08); transition: width 0.2s;">
-            <div style="padding: 32px 24px 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+            <div style="padding:10px 16px 10px; border-bottom: 1px solid rgba(255,255,255,0.08);">
                 <a class="navbar-brand" href="{% url 'dashboard' %}" style="color: #fff; font-size: 1.7rem; font-weight: 700; text-decoration: none;">
                     <i class="fas fa-shield-alt"></i> SRAS
                 </a>
