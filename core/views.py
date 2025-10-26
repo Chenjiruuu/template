@@ -49,7 +49,6 @@ def login_view(request):
         
         if user is not None:
             login(request, user)
-            messages.success(request, f'Welcome back, {user.username}!')
             if user.is_superuser:
                 request.session['show_welcome_popup'] = True
                 return redirect('dashboard')
@@ -794,3 +793,4 @@ class PendingViolationsView(APIView):
         
         serializer = ViolationSerializer(pending_violations, many=True)
         return Response(serializer.data)
+
