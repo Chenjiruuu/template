@@ -48,3 +48,9 @@ urlpatterns = [
     path('violations/<int:violation_id>/cancel/', cancel_violation, name='cancel_violation'),
     path('pending_violations/<int:violation_id>/image/', pending_violation_image, name='pending_violation_image'),
 ]+ router.urls
+from . import views
+
+urlpatterns += [
+    # API for dashboard week filter
+    path('api/violations_by_week/', views.api_violations_by_week, name='api_violations_by_week'),
+]
