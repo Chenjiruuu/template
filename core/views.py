@@ -112,6 +112,7 @@ def dashboard(request):
     # Get enforcer statistics
     total_enforcers = Enforcer.objects.count()
     active_enforcers = Enforcer.objects.filter(user__is_active=True).count()
+    inactive_enforcers = Enforcer.objects.filter(user__is_active=False).count()
 
     # Additional logging for debugging
     pending_count = Violation.objects.filter(status='pending_verification').count()
@@ -129,6 +130,7 @@ def dashboard(request):
         'recent_violations': recent_violations,
         'total_enforcers': total_enforcers,
         'active_enforcers': active_enforcers,
+        'inactive_enforcers': inactive_enforcers,
         'show_welcome_popup': show_welcome_popup,
         'current_month_name': current_month_name,  # DEBUG: Added for card display
         'active_page': 'dashboard',
@@ -794,3 +796,22 @@ class PendingViolationsView(APIView):
         serializer = ViolationSerializer(pending_violations, many=True)
         return Response(serializer.data)
 
+# --- API endpoint for live vehicle counts ---
+from django.views.decorators.csrf import csrf_exempt
+import redis
+
+@csrf_exempt
+def vehicle_count_api(request):
+    """API endpoint to get live vehicle counts (motorcycle, car, truck, bus, bicycle, tricycle)"""
+    try:
+        redis_client = redis.Redis(host='localhost', port=6379, db=0)
+        counts = redis_client.hgetall("live_vehicle_counts")
+        # Convert bytes to int
+        result = {k.decode(): int(v) for k, v in counts.items()}
+        return JsonResponse(result)
+    except Exception as e:
+        return JsonResponse({"error": f"Redis error: {e}"}, status=503)
+@login_required
+def vehicle_count_page(request):
+    """Page to display live vehicle counts"""
+    return render(request, "core/vehicle_count.html", {"active_page": "vehicle_count"})
