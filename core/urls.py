@@ -53,4 +53,7 @@ from . import views
 urlpatterns += [
     # API for dashboard week filter
     path('api/violations_by_week/', views.api_violations_by_week, name='api_violations_by_week'),
+    # Vehicle Count Page and API
+    path('vehicle_count_page', views.vehicle_count_page, name='vehicle_count_page'),
+    path('vehicle_count_api', views.vehicle_count_api, name='vehicle_count_api'),
 ]
