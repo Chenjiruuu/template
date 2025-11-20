@@ -254,9 +254,13 @@ def violation_statistics(request):
     logger = logging.getLogger(__name__)
     import pytz
 
+    # DEBUG: Log current server time and calculated "today"
+    logger.warning(f"[STATISTICS_API] Server now: {timezone.now()}, Manila now: {timezone.now().astimezone(pytz.timezone('Asia/Manila'))}")
+
     # Get the last 5 days (including today)
     local_tz = pytz.timezone('Asia/Manila')
     manila_now = timezone.now().astimezone(local_tz)
+    # Fix: Use Manila's current date for "today" and ensure violations at 00:00:00 are included
     end_date = manila_now.date()
     start_date = end_date - timedelta(days=4)
 
@@ -284,7 +288,8 @@ def violation_statistics(request):
         })
 
     # Get current week (Sunday to Saturday)
-    today = timezone.now().date()
+    # Use Manila local date for today
+    today = timezone.now().astimezone(local_tz).date()
     # Find the most recent Sunday
     week_start = today - timedelta(days=today.weekday() + 1 if today.weekday() != 6 else 0)
     week_dates = [week_start + timedelta(days=i) for i in range(7)]
@@ -404,17 +409,15 @@ def violation_statistics(request):
         hour_end_utc = hour_end.astimezone(pytz.UTC)
         qs = OriginalViolation.objects.filter(timestamp__gte=hour_start_utc, timestamp__lte=hour_end_utc)
         count = qs.count()
-        logger.warning(f"[TODAY_HOURLY] {hour:02d}:00 - {hour:02d}:59: {count}")
+        # Convert to 12-hour format with AM/PM
+        hour_12 = hour % 12 if hour % 12 != 0 else 12
+        am_pm = "AM" if hour < 12 else "PM"
         today_hourly.append({
-            'hour': f"{hour:02d}:00",
+            'hour': f"{hour_12:02d}:00 {am_pm}",
             'count': count
         })
 
-    logger.warning(f"[STATISTICS] Final statistics: {statistics}")
-    logger.warning(f"[WEEK_STATS] {week_statistics}")
-    logger.warning(f"[MONTH_STATS] {month_statistics}")
-    logger.warning(f"[MONTH_WEEKLY_DAILY] {month_weekly_daily}")
-    logger.warning(f"[TODAY_HOURLY] {today_hourly}")
+    # Remove debug logs
     return JsonResponse({
         'statistics': statistics,
         'total_violations': sum(item['count'] for item in statistics),
@@ -808,10 +811,17 @@ def vehicle_count_api(request):
         counts = redis_client.hgetall("live_vehicle_counts")
         # Convert bytes to int
         result = {k.decode(): int(v) for k, v in counts.items()}
-        return JsonResponse(result)
+        return JsonResponse({"counts": result})
     except Exception as e:
         return JsonResponse({"error": f"Redis error: {e}"}, status=503)
 @login_required
 def vehicle_count_page(request):
     """Page to display live vehicle counts"""
-    return render(request, "core/vehicle_count.html", {"active_page": "vehicle_count"})
+    import redis
+    try:
+        redis_client = redis.Redis(host='localhost', port=6379, db=0)
+        counts = redis_client.hgetall("live_vehicle_counts")
+        result = {k.decode(): int(v) for k, v in counts.items()}
+    except Exception:
+        result = {}
+    return render(request, "core/vehicle_count.html", {"active_page": "vehicle_count", "counts": result})
