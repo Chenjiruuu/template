@@ -96,8 +96,10 @@ def dashboard(request):
     this_week_violations = OriginalViolation.objects.filter(timestamp__gte=start_week_utc, timestamp__lte=end_week_utc).count()
 
     # This month
+    import calendar
     month_start = today_date.replace(day=1)
-    last_day = (month_start.replace(month=month_start.month % 12 + 1, day=1) - timedelta(days=1))
+    last_day_num = calendar.monthrange(today_date.year, today_date.month)[1]
+    last_day = month_start.replace(day=last_day_num)
     start_month = local_tz.localize(datetime.combine(month_start, datetime.min.time()))
     end_month = local_tz.localize(datetime.combine(last_day, datetime.max.time()))
     start_month_utc = start_month.astimezone(pytz.UTC)
@@ -312,8 +314,10 @@ def violation_statistics(request):
     # Calculate statistics for each week of the current month (real calendar weeks, Sun-Sat)
     import calendar
     month_statistics = []
+    import calendar
     first_day = today.replace(day=1)
-    last_day = (first_day.replace(month=first_day.month % 12 + 1, day=1) - timedelta(days=1))
+    last_day_num = calendar.monthrange(today.year, today.month)[1]
+    last_day = first_day.replace(day=last_day_num)
     # Use the real first day of the month, not the first Sunday
     week_ranges = []
     current = first_day
