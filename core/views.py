@@ -76,15 +76,13 @@ def dashboard(request):
     now = timezone.now().astimezone(local_tz)
     today_date = now.date()
 
-    # Today (using verified_at)
+    # Today (local PH time, reset every 12am Asia/Manila)
     start_today = local_tz.localize(datetime.combine(today_date, datetime.min.time()))
     end_today = local_tz.localize(datetime.combine(today_date, datetime.max.time()))
-    start_today_utc = start_today.astimezone(pytz.UTC)
-    end_today_utc = end_today.astimezone(pytz.UTC)
+    today_violations = OriginalViolation.objects.filter(timestamp__gte=start_today, timestamp__lte=end_today).count()
     logger.warning(f"[DEBUG] Dashboard Manila now: {now}, Today date: {today_date}")
     logger.warning(f"[DEBUG] Dashboard Start of today Manila: {start_today}, End of today Manila: {end_today}")
-    logger.warning(f"[DEBUG] Dashboard Start of today UTC: {start_today_utc}, End of today UTC: {end_today_utc}")
-    today_violations = OriginalViolation.objects.filter(timestamp__gte=start_today_utc, timestamp__lte=end_today_utc).count()
+    logger.warning(f"[DEBUG] Dashboard Start of today PH-local: {start_today}, End of today PH-local: {end_today}")
 
     # This week (Sunday to Saturday, using verified_at)
     week_start = today_date - timedelta(days=today_date.weekday() + 1 if today_date.weekday() != 6 else 0)
@@ -863,3 +861,4 @@ def check_username_availability(request):
         'username': username,
         'message': 'Username already exists' if exists else 'Username available'
     })
+
