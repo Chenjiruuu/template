@@ -76,7 +76,7 @@ def dashboard(request):
     now = timezone.now().astimezone(local_tz)
     today_date = now.date()
 
-    # Today
+    # Today (using verified_at)
     start_today = local_tz.localize(datetime.combine(today_date, datetime.min.time()))
     end_today = local_tz.localize(datetime.combine(today_date, datetime.max.time()))
     start_today_utc = start_today.astimezone(pytz.UTC)
@@ -86,7 +86,7 @@ def dashboard(request):
     logger.warning(f"[DEBUG] Dashboard Start of today UTC: {start_today_utc}, End of today UTC: {end_today_utc}")
     today_violations = OriginalViolation.objects.filter(timestamp__gte=start_today_utc, timestamp__lte=end_today_utc).count()
 
-    # This week (Sunday to Saturday)
+    # This week (Sunday to Saturday, using verified_at)
     week_start = today_date - timedelta(days=today_date.weekday() + 1 if today_date.weekday() != 6 else 0)
     week_end = week_start + timedelta(days=6)
     start_week = local_tz.localize(datetime.combine(week_start, datetime.min.time()))
@@ -114,7 +114,7 @@ def dashboard(request):
     # Get enforcer statistics
     total_enforcers = Enforcer.objects.count()
     active_enforcers = Enforcer.objects.filter(user__is_active=True).count()
-    inactive_enforcers = Enforcer.objects.filter(user__is_active=False).count()
+    inactive_enforcers = total_enforcers - active_enforcers
 
     # Additional logging for debugging
     pending_count = Violation.objects.filter(status='pending_verification').count()
@@ -144,9 +144,11 @@ def dashboard(request):
 def enforcer_list(request):
     """View to display all enforcers"""
     enforcers = Enforcer.objects.all().order_by('user__username')
+    cameras = Camera.objects.all()
     
     context = {
         'enforcers': enforcers,
+        'cameras': cameras,
         'active_page': 'enforcer_list',
     }
     
@@ -157,14 +159,21 @@ def add_enforcer(request):
     """View to add a new enforcer"""
     if request.method == 'POST':
         username = request.POST.get('username')
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
         email = request.POST.get('email')
         password = request.POST.get('password')
         mobile_number = request.POST.get('mobile_number')
         assigned_camera_id = request.POST.get('assigned_camera')
         
-        # Check if username already exists
+        # Validation: Check if username already exists
         if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already exists.')
+            messages.error(request, 'Username already exists. Please choose a different username.')
+            return render(request, 'core/add_enforcer.html', {'cameras': Camera.objects.all()})
+        
+        # Validation: Check mobile number length (must be exactly 11 digits)
+        if not mobile_number or len(mobile_number) != 11 or not mobile_number.isdigit():
+            messages.error(request, 'Mobile number must be exactly 11 digits.')
             return render(request, 'core/add_enforcer.html', {'cameras': Camera.objects.all()})
         
         try:
@@ -172,7 +181,9 @@ def add_enforcer(request):
             user = User.objects.create_user(
                 username=username,
                 email=email,
-                password=password
+                password=password,
+                first_name=first_name,
+                last_name=last_name
             )
             
             # Create enforcer
@@ -182,7 +193,8 @@ def add_enforcer(request):
                 assigned_camera_id=assigned_camera_id if assigned_camera_id else None
             )
             
-            messages.success(request, f'Enforcer "{username}" has been created successfully.')
+            full_name = f"{first_name} {last_name}".strip() or username
+            messages.success(request, f'Enforcer "{full_name}" has been created successfully.')
             return redirect('enforcer_list')
             
         except Exception as e:
@@ -201,6 +213,8 @@ def edit_enforcer(request, enforcer_id):
     enforcer = get_object_or_404(Enforcer, id=enforcer_id)
     
     if request.method == 'POST':
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
         email = request.POST.get('email')
         mobile_number = request.POST.get('mobile_number')
         assigned_camera_id = request.POST.get('assigned_camera')
@@ -208,6 +222,8 @@ def edit_enforcer(request, enforcer_id):
         
         try:
             # Update user
+            enforcer.user.first_name = first_name
+            enforcer.user.last_name = last_name
             enforcer.user.email = email
             enforcer.user.is_active = is_active
             enforcer.user.save()
@@ -256,13 +272,9 @@ def violation_statistics(request):
     logger = logging.getLogger(__name__)
     import pytz
 
-    # DEBUG: Log current server time and calculated "today"
-    logger.warning(f"[STATISTICS_API] Server now: {timezone.now()}, Manila now: {timezone.now().astimezone(pytz.timezone('Asia/Manila'))}")
-
     # Get the last 5 days (including today)
     local_tz = pytz.timezone('Asia/Manila')
     manila_now = timezone.now().astimezone(local_tz)
-    # Fix: Use Manila's current date for "today" and ensure violations at 00:00:00 are included
     end_date = manila_now.date()
     start_date = end_date - timedelta(days=4)
 
@@ -272,7 +284,7 @@ def violation_statistics(request):
         date = end_date - timedelta(days=4-i)
         dates.append(date)
 
-    # Get approved violation counts for each date
+    # Get approved violation counts for each date (using verified_at)
     local_tz = pytz.timezone('Asia/Manila')
     statistics = []
     for date in dates:
@@ -290,7 +302,6 @@ def violation_statistics(request):
         })
 
     # Get current week (Sunday to Saturday)
-    # Use Manila local date for today
     today = timezone.now().astimezone(local_tz).date()
     # Find the most recent Sunday
     week_start = today - timedelta(days=today.weekday() + 1 if today.weekday() != 6 else 0)
@@ -389,7 +400,7 @@ def violation_statistics(request):
             end_dt = local_tz.localize(datetime.combine(day, datetime.max.time()))
             start_utc = start_dt.astimezone(pytz.UTC)
             end_utc = end_dt.astimezone(pytz.UTC)
-            qs = OriginalViolation.objects.filter(timestamp__gte=start_utc, timestamp__lte=end_utc)
+            qs = OriginalViolation.objects.filter(verified_at__gte=start_utc, verified_at__lte=end_utc)
             count = qs.count()
             extra_days.append({
                 'label': day.strftime('%a'),
@@ -404,24 +415,27 @@ def violation_statistics(request):
             'days': extra_days
         })
 
-    # Calculate statistics for each hour of today (local time)
+    # Calculate statistics for each hour of today (local time, using verified_at)
     today_hourly = []
+    manila_today = manila_now.date()
     for hour in range(24):
-        hour_start = local_tz.localize(datetime.combine(today, datetime.min.time()) + timedelta(hours=hour))
+        hour_start = local_tz.localize(datetime.combine(manila_today, datetime.min.time()) + timedelta(hours=hour))
         hour_end = hour_start + timedelta(minutes=59, seconds=59, microseconds=999999)
         hour_start_utc = hour_start.astimezone(pytz.UTC)
         hour_end_utc = hour_end.astimezone(pytz.UTC)
-        qs = OriginalViolation.objects.filter(timestamp__gte=hour_start_utc, timestamp__lte=hour_end_utc)
+        qs = OriginalViolation.objects.filter(verified_at__gte=hour_start_utc, verified_at__lte=hour_end_utc)
         count = qs.count()
-        # Convert to 12-hour format with AM/PM
-        hour_12 = hour % 12 if hour % 12 != 0 else 12
-        am_pm = "AM" if hour < 12 else "PM"
+        logger.warning(f"[TODAY_HOURLY] {hour:02d}:00 - {hour:02d}:59: {count}")
         today_hourly.append({
-            'hour': f"{hour_12:02d}:00 {am_pm}",
+            'hour': f"{hour:02d}:00",
             'count': count
         })
 
-    # Remove debug logs
+    logger.warning(f"[STATISTICS] Final statistics: {statistics}")
+    logger.warning(f"[WEEK_STATS] {week_statistics}")
+    logger.warning(f"[MONTH_STATS] {month_statistics}")
+    logger.warning(f"[MONTH_WEEKLY_DAILY] {month_weekly_daily}")
+    logger.warning(f"[TODAY_HOURLY] {today_hourly}")
     return JsonResponse({
         'statistics': statistics,
         'total_violations': sum(item['count'] for item in statistics),
@@ -499,15 +513,26 @@ def violation_list(request):
 
     if date_filter:
         try:
-            filter_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+            # Parse month/year format (YYYY-MM)
+            filter_date = datetime.strptime(date_filter, '%Y-%m')
             import pytz
+            import calendar
             local_tz = pytz.timezone('Asia/Manila')
-            start_dt = local_tz.localize(datetime.combine(filter_date, datetime.min.time()))
-            end_dt = local_tz.localize(datetime.combine(filter_date, datetime.max.time()))
+            
+            # Get first day of the month
+            first_day = filter_date.replace(day=1)
+            # Get last day of the month
+            last_day_num = calendar.monthrange(filter_date.year, filter_date.month)[1]
+            last_day = filter_date.replace(day=last_day_num)
+            
+            # Create datetime range for the entire month
+            start_dt = local_tz.localize(datetime.combine(first_day.date(), datetime.min.time()))
+            end_dt = local_tz.localize(datetime.combine(last_day.date(), datetime.max.time()))
             start_utc = start_dt.astimezone(pytz.UTC)
             end_utc = end_dt.astimezone(pytz.UTC)
+            
             violations = violations.filter(timestamp__gte=start_utc, timestamp__lte=end_utc)
-            logger.warning(f"Date filter applied: {date_filter} ({start_utc} to {end_utc}), count: {violations.count()}")
+            logger.warning(f"Month filter applied: {date_filter} ({start_utc} to {end_utc}), count: {violations.count()}")
         except ValueError:
             logger.error(f"Invalid date_filter format: {date_filter}")
 
@@ -703,7 +728,11 @@ class ViolationViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['patch'])
     def verify(self, request, pk=None):
         """Verify a violation (approve or reject)"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         violation = self.get_object()
+        logger.warning(f"[VERIFY] Violation {pk} current status: {violation.status}")
         
         # Check if violation is still pending
         if violation.status != 'pending_verification':
@@ -721,10 +750,13 @@ class ViolationViewSet(viewsets.ReadOnlyModelViewSet):
             violation.verification_notes = serializer.validated_data.get('verification_notes', '')
             violation.save()
             
+            logger.warning(f"[VERIFY] Violation {pk} updated to status: {violation.status}")
+            
             # If approved, create an OriginalViolation record
             if violation.status == 'approved':
                 original_violation = OriginalViolation.objects.create(
                     camera=violation.camera,
+                    timestamp=violation.timestamp,
                     plate_number=violation.plate_number,
                     image=violation.image,
                     plate_image=violation.plate_image,
@@ -735,6 +767,7 @@ class ViolationViewSet(viewsets.ReadOnlyModelViewSet):
                     sms_sent=violation.sms_sent,
                     rider_hash=violation.rider_hash
                 )
+                logger.warning(f"[VERIFY] Created OriginalViolation {original_violation.id} for Violation {pk}")
             
             return Response({
                 'message': f'Violation {violation.status} successfully',
@@ -766,7 +799,11 @@ def approve_violation(request, violation_id):
             sms_sent=violation.sms_sent,
             rider_hash=violation.rider_hash
         )
-        messages.success(request, f'Violation #{violation.id} approved.')
+        # Store message in session for pending_violation page only
+        request.session['pending_violation_message'] = {
+            'type': 'success',
+            'text': f'Violation #{violation.id} approved successfully.'
+        }
     return redirect('pending_violation')
 
 @login_required
@@ -778,16 +815,25 @@ def cancel_violation(request, violation_id):
         violation.verified_by = request.user
         violation.verified_at = timezone.now()
         violation.save()
-        messages.success(request, f'Violation #{violation.id} cancelled.')
+        # Store message in session for pending_violation page only
+        request.session['pending_violation_message'] = {
+            'type': 'info',
+            'text': f'Violation #{violation.id} cancelled successfully.'
+        }
     return redirect('pending_violation')
 
 @login_required
 def pending_violation(request):
     """Page to list all pending violations for admin review"""
     pending_violations = Violation.objects.filter(status='pending_verification').select_related('camera').order_by('-timestamp')
+    
+    # Get and clear the session message if it exists
+    message = request.session.pop('pending_violation_message', None)
+    
     context = {
         'pending_violations': pending_violations,
         'active_page': 'pending_violation',
+        'flash_message': message,
     }
     return render(request, 'core/pending_violation.html', context)
 
@@ -803,29 +849,17 @@ class PendingViolationsView(APIView):
         serializer = ViolationSerializer(pending_violations, many=True)
         return Response(serializer.data)
 
-# --- API endpoint for live vehicle counts ---
-from django.views.decorators.csrf import csrf_exempt
-import redis
-
-@csrf_exempt
-def vehicle_count_api(request):
-    """API endpoint to get live vehicle counts (motorcycle, car, truck, bus, bicycle, tricycle)"""
-    try:
-        redis_client = redis.Redis(host='localhost', port=6379, db=0)
-        counts = redis_client.hgetall("live_vehicle_counts")
-        # Convert bytes to int
-        result = {k.decode(): int(v) for k, v in counts.items()}
-        return JsonResponse({"counts": result})
-    except Exception as e:
-        return JsonResponse({"error": f"Redis error: {e}"}, status=503)
-@login_required
-def vehicle_count_page(request):
-    """Page to display live vehicle counts"""
-    import redis
-    try:
-        redis_client = redis.Redis(host='localhost', port=6379, db=0)
-        counts = redis_client.hgetall("live_vehicle_counts")
-        result = {k.decode(): int(v) for k, v in counts.items()}
-    except Exception:
-        result = {}
-    return render(request, "core/vehicle_count.html", {"active_page": "vehicle_count", "counts": result})
+def check_username_availability(request):
+    """API endpoint to check if a username is available"""
+    username = request.GET.get('username', '').strip()
+    
+    if not username:
+        return JsonResponse({'exists': False, 'message': 'Username is required'})
+    
+    exists = User.objects.filter(username=username).exists()
+    
+    return JsonResponse({
+        'exists': exists,
+        'username': username,
+        'message': 'Username already exists' if exists else 'Username available'
+    })
